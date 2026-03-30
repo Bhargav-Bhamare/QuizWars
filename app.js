@@ -13,8 +13,14 @@ app.use(methodOverride("_method"));
 app.engine("ejs",ejsMate);
 app.use(express.static(path.join(__dirname,"/public")));
 
+// Demo credentials
+const CREDENTIALS = {
+  student: { username: 'player1', password: '1234' },
+  admin: { username: 'admin', password: 'admin123' }
+};
+
 app.get("/", (req,res)=>{
-    res.send("Homepage");
+    res.render("login.ejs");
 });
 
 app.get("/stuDash", (req,res)=>{
@@ -25,7 +31,13 @@ app.get("/qMastDash", (req,res)=>{
     res.render("qMasterDash.ejs");
 });
 
+app.get("/login", (req, res) => {
+    res.render("login.ejs");
+});
 
+app.get("/logout", (req, res) => {
+    res.redirect("/");
+});
 
 //Server Check
 app.listen(8080, () => {

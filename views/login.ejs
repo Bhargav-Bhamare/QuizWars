@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trojans Quiz Arena — Enter the Battlefield</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #030308;
+    --panel-bg: rgba(8, 6, 20, 0.85);
+    --neon-red: #ff2244;
+    --neon-blue: #00d4ff;
+    --neon-gold: #ffd700;
+    --neon-purple: #a855f7;
+    --student-color: #00d4ff;
+    --admin-color: #ff2244;
+    --active-color: var(--student-color);
+    --glow-color: var(--student-color);
+    --text-primary: #e8e8ff;
+    --text-dim: #6b7a99;
+    --border-dim: rgba(100,120,180,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Rajdhani', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  /* ═══════════════════════════════════════════
+     CANVAS / BACKGROUND LAYER
+  ═══════════════════════════════════════════ */
+  #bgCanvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ═══════════════════════════════════════════
+     SWEEP LIGHTS
+  ═══════════════════════════════════════════ */
+  .sweep-light {
+    position: fixed;
+    top: -10vh;
+    width: 2px;
+    height: 60vh;
+    background: linear-gradient(to bottom, transparent, rgba(0,212,255,0.15), transparent);
+    filter: blur(6px);
+    animation: sweepLight 8s ease-in-out infinite;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .sweep-light:nth-child(1) { left: 15%; animation-delay: 0s; background: linear-gradient(to bottom, transparent, rgba(0,212,255,0.12), transparent); }
+  .sweep-light:nth-child(2) { left: 40%; animation-delay: 2.5s; background: linear-gradient(to bottom, transparent, rgba(255,34,68,0.1), transparent); }
+  .sweep-light:nth-child(3) { left: 65%; animation-delay: 5s; background: linear-gradient(to bottom, transparent, rgba(255,215,0,0.1), transparent); }
+  .sweep-light:nth-child(4) { left: 85%; animation-delay: 1.5s; background: linear-gradient(to bottom, transparent, rgba(168,85,247,0.1), transparent); }
+
+  @keyframes sweepLight {
+    0%   { transform: translateY(-20vh) rotate(-5deg); opacity: 0; }
+    20%  { opacity: 1; }
+    50%  { transform: translateY(60vh) rotate(5deg); opacity: 0.8; }
+    80%  { opacity: 0.4; }
+    100% { transform: translateY(120vh) rotate(-3deg); opacity: 0; }
+  }
+
+  /* ═══════════════════════════════════════════
+     GRID FLOOR LINES
+  ═══════════════════════════════════════════ */
+  .arena-floor {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40vh;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      linear-gradient(to bottom, transparent 0%, rgba(0,212,255,0.03) 100%);
+    overflow: hidden;
+  }
+  .arena-floor::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.08) 1px, transparent 1px);
+    background-size: 60px 60px;
+    transform: perspective(400px) rotateX(60deg) translateY(-20%);
+    transform-origin: bottom center;
+    animation: gridPulse 4s ease-in-out infinite;
+  }
+  @keyframes gridPulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* ═══════════════════════════════════════════
+     INTRO SEQUENCE
+  ═══════════════════════════════════════════ */
+  #intro {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  #intro.fade-out {
+    animation: introFadeOut 0.8s ease-in forwards;
+    animation-delay: 0.1s;
+  }
+
+  @keyframes introFadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; pointer-events: none; }
+  }
+
+  .intro-text {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.2rem, 4vw, 2.5rem);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0;
+    text-shadow: 0 0 40px rgba(0,212,255,0.8);
+    animation: introReveal 0.6s ease-out forwards;
+  }
+
+  .intro-text.glitch {
+    animation: introReveal 0.6s ease-out forwards, glitchText 0.3s steps(2) 1.2s 3;
+  }
+
+  .intro-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--neon-blue);
+    letter-spacing: 0.3em;
+    opacity: 0;
+    animation: introReveal 0.4s ease-out 1s forwards;
+  }
+
+  .intro-bar {
+    width: 0%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--neon-blue), var(--neon-red));
+    animation: introBar 1.5s ease-in-out 0.8s forwards;
+    box-shadow: 0 0 10px var(--neon-blue);
+    max-width: 400px;
+  }
+
+  @keyframes introReveal {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes introBar {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+  @keyframes glitchText {
+    0%   { transform: translate(0); clip-path: inset(0); color: #fff; }
+    20%  { transform: translate(-3px, 1px); clip-path: inset(10% 0 80% 0); color: var(--neon-red); }
+    40%  { transform: translate(3px, -1px); clip-path: inset(50% 0 30% 0); color: var(--neon-blue); }
+    60%  { transform: translate(-2px, 2px); clip-path: inset(80% 0 5% 0); color: #fff; }
+    80%  { transform: translate(0); clip-path: inset(0); color: var(--neon-gold); }
+    100% { transform: translate(0); clip-path: inset(0); color: #fff; }
+  }
+
+  /* ═══════════════════════════════════════════
+     MAIN CONTAINER
+  ═══════════════════════════════════════════ */
+  #app {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    animation: appReveal 1s ease-out 3.5s forwards;
+  }
+  @keyframes appReveal {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ═══════════════════════════════════════════
+     LOGIN PANEL
+  ═══════════════════════════════════════════ */
+  .login-panel {
+    width: 100%;
+    max-width: 480px;
+    background: var(--panel-bg);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 4px;
+    padding: 40px 36px;
+    position: relative;
+    backdrop-filter: blur(20px);
+    box-shadow:
+      0 0 0 1px rgba(0,212,255,0.05),
+      0 0 60px rgba(0,212,255,0.08),
+      0 0 120px rgba(0,0,0,0.8),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    animation: panelFloat 6s ease-in-out infinite;
+  }
+
+  @keyframes panelFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+  }
+
+  /* Corner brackets */
+  .login-panel::before,
+  .login-panel::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-color: var(--active-color);
+    border-style: solid;
+    transition: border-color 0.5s;
+  }
+  .login-panel::before {
+    top: -1px; left: -1px;
+    border-width: 2px 0 0 2px;
+  }
+  .login-panel::after {
+    bottom: -1px; right: -1px;
+    border-width: 0 2px 2px 0;
+  }
+
+  /* ═══════════════════════════════════════════
+     LOGO HEADER
+  ═══════════════════════════════════════════ */
+  .logo-section {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .logo-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 20px var(--active-color));
+    animation: iconPulse 3s ease-in-out infinite;
+    transition: filter 0.5s;
+  }
+  @keyframes iconPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .logo-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fff;
+    text-shadow: 0 0 30px var(--active-color);
+    transition: text-shadow 0.5s;
+    line-height: 1.2;
+  }
+
+  .logo-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--active-color), transparent);
+    opacity: 0.4;
+    margin: 20px 0;
+    transition: background 0.5s;
+  }
+
+  /* ═══════════════════════════════════════════
+     ROLE SELECTION
+  ═══════════════════════════════════════════ */
+  .role-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .role-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .role-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border-dim);
+    border-radius: 3px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .role-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, var(--card-glow, transparent), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .role-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    border-color: rgba(255,255,255,0.2);
+  }
+  .role-card:hover::before { opacity: 0.15; }
+
+  .role-card.student { --card-glow: var(--student-color); }
+  .role-card.admin   { --card-glow: var(--admin-color); }
+
+  .role-card.active.student {
+    border-color: var(--student-color);
+    box-shadow: 0 0 20px rgba(0,212,255,0.25), inset 0 0 20px rgba(0,212,255,0.05);
+    animation: cardPulseBlue 2s ease-in-out infinite;
+  }
+  .role-card.active.admin {
+    border-color: var(--admin-color);
+    box-shadow: 0 0 20px rgba(255,34,68,0.25), inset 0 0 20px rgba(255,34,68,0.05);
+    animation: cardPulseRed 2s ease-in-out infinite;
+  }
+
+  @keyframes cardPulseBlue {
+    0%, 100% { box-shadow: 0 0 20px rgba(0,212,255,0.25), inset 0 0 20px rgba(0,212,255,0.05); }
+    50%       { box-shadow: 0 0 35px rgba(0,212,255,0.45), inset 0 0 30px rgba(0,212,255,0.1); }
+  }
+  @keyframes cardPulseRed {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,34,68,0.25), inset 0 0 20px rgba(255,34,68,0.05); }
+    50%       { box-shadow: 0 0 35px rgba(255,34,68,0.45), inset 0 0 30px rgba(255,34,68,0.1); }
+  }
+
+  .role-emoji {
+    font-size: 1.6rem;
+    display: block;
+    margin-bottom: 6px;
+    transition: transform 0.3s;
+  }
+  .role-card:hover .role-emoji,
+  .role-card.active .role-emoji {
+    transform: scale(1.2);
+  }
+
+  .role-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .role-card.student .role-name { color: var(--student-color); }
+  .role-card.admin   .role-name { color: var(--admin-color); }
+
+  .role-desc {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 3px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Active indicator */
+  .role-card .active-dot {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .role-card.active.student .active-dot { background: var(--student-color); opacity: 1; box-shadow: 0 0 6px var(--student-color); animation: dotBlink 1s infinite; }
+  .role-card.active.admin   .active-dot { background: var(--admin-color);   opacity: 1; box-shadow: 0 0 6px var(--admin-color);   animation: dotBlink 1s infinite; }
+  @keyframes dotBlink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  /* ═══════════════════════════════════════════
+     FORM FIELDS
+  ═══════════════════════════════════════════ */
+  .field-group {
+    margin-bottom: 14px;
+    position: relative;
+  }
+
+  .field-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.25em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .field-wrap {
+    position: relative;
+  }
+
+  .field-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    transition: color 0.3s;
+    pointer-events: none;
+  }
+
+  .field-input {
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(100,120,180,0.2);
+    border-radius: 2px;
+    padding: 11px 14px 11px 38px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    outline: none;
+    transition: all 0.3s ease;
+    letter-spacing: 0.05em;
+  }
+
+  .field-input::placeholder {
+    color: rgba(107,122,153,0.6);
+    transition: opacity 0.3s;
+  }
+
+  .field-input:focus::placeholder { opacity: 0.3; }
+
+  .field-input:focus {
+    border-color: var(--active-color);
+    background: rgba(0,212,255,0.04);
+    box-shadow: 0 0 0 1px var(--active-color), 0 0 20px rgba(0,212,255,0.1);
+  }
+
+  body.admin-mode .field-input:focus {
+    background: rgba(255,34,68,0.04);
+    box-shadow: 0 0 0 1px var(--admin-color), 0 0 20px rgba(255,34,68,0.1);
+  }
+
+  .field-input:focus + .field-line,
+  .field-wrap:focus-within .field-line {
+    width: 100%;
+  }
+
+  .field-line {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 1px;
+    width: 0;
+    background: var(--active-color);
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px var(--active-color);
+  }
+
+  /* ═══════════════════════════════════════════
+     ERROR MESSAGE
+  ═══════════════════════════════════════════ */
+  .error-msg {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--neon-red);
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: 0.1em;
+    min-height: 16px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .error-msg.visible { opacity: 1; animation: errorShake 0.4s ease; }
+  @keyframes errorShake {
+    0%,100%{transform:translateX(0);}
+    20%{transform:translateX(-6px);}
+    40%{transform:translateX(6px);}
+    60%{transform:translateX(-4px);}
+    80%{transform:translateX(4px);}
+  }
+
+  /* ═══════════════════════════════════════════
+     ENTER BUTTON
+  ═══════════════════════════════════════════ */
+  .enter-btn {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px solid var(--active-color);
+    border-radius: 2px;
+    color: var(--active-color);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    margin-bottom: 24px;
+    box-shadow: 0 0 20px rgba(0,212,255,0.1);
+  }
+
+  .enter-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--active-color);
+    transform: translateX(-105%);
+    transition: transform 0.4s ease;
+    z-index: 0;
+  }
+
+  .enter-btn:hover::before { transform: translateX(0); }
+  .enter-btn:hover {
+    color: #000;
+    box-shadow: 0 0 40px rgba(0,212,255,0.4);
+    transform: translateY(-1px);
+  }
+
+  .enter-btn span {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Ripple */
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    transform: scale(0);
+    animation: rippleAnim 0.6s linear;
+    pointer-events: none;
+    z-index: 2;
+  }
+  @keyframes rippleAnim {
+    to { transform: scale(4); opacity: 0; }
+  }
+
+  body.admin-mode .enter-btn {
+    border-color: var(--admin-color);
+    color: var(--admin-color);
+    box-shadow: 0 0 20px rgba(255,34,68,0.1);
+  }
+  body.admin-mode .enter-btn::before { background: var(--admin-color); }
+  body.admin-mode .enter-btn:hover {
+    box-shadow: 0 0 40px rgba(255,34,68,0.4);
+  }
+
+  /* Loading state */
+  .enter-btn.loading span { opacity: 0; }
+  .enter-btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #fff;
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    animation: spin 0.7s linear infinite;
+    z-index: 3;
+  }
+  @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+  /* ═══════════════════════════════════════════
+     DEMO CREDENTIALS PANEL
+  ═══════════════════════════════════════════ */
+  .demo-panel {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(100,120,180,0.12);
+    border-radius: 3px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .demo-panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--active-color), transparent);
+    opacity: 0.4;
+    transition: background 0.5s;
+  }
+
+  .demo-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--neon-gold);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .demo-title::before, .demo-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,215,0,0.2);
+  }
+
+  .demo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .demo-item {
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(100,120,180,0.1);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .demo-item:hover {
+    border-color: rgba(255,215,0,0.3);
+    background: rgba(255,215,0,0.03);
+    transform: translateY(-1px);
+  }
+
+  .demo-role {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .demo-item:first-child .demo-role { color: var(--student-color); }
+  .demo-item:last-child  .demo-role { color: var(--admin-color); }
+
+  .demo-cred {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .demo-cred span { color: rgba(255,255,255,0.6); }
+
+  .demo-hint {
+    font-size: 0.55rem;
+    color: rgba(255,215,0,0.5);
+    margin-top: 4px;
+    font-style: italic;
+  }
+
+  /* ═══════════════════════════════════════════
+     SUCCESS OVERLAY
+  ═══════════════════════════════════════════ */
+  #successOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #successOverlay.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .success-text {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1rem, 4vw, 2rem);
+    font-weight: 900;
+    color: #0f0;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-shadow: 0 0 40px #0f0, 0 0 80px #0f0;
+    animation: successPulse 0.5s ease-in-out infinite alternate;
+  }
+  @keyframes successPulse {
+    from { opacity: 0.8; }
+    to   { opacity: 1; transform: scale(1.02); }
+  }
+  .success-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    color: rgba(0,255,0,0.6);
+    letter-spacing: 0.3em;
+  }
+  .success-bar {
+    width: 300px;
+    height: 2px;
+    background: rgba(0,255,0,0.2);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .success-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: #0f0;
+    box-shadow: 0 0 10px #0f0;
+    animation: fillBar 1.5s ease-in-out forwards;
+  }
+  @keyframes fillBar {
+    from { width: 0%; }
+    to   { width: 100%; }
+  }
+
+  /* ═══════════════════════════════════════════
+     HUD ELEMENTS
+  ═══════════════════════════════════════════ */
+  .hud-corner {
+    position: fixed;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.55rem;
+    color: rgba(100,120,180,0.3);
+    letter-spacing: 0.15em;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .hud-tl { top: 12px; left: 16px; }
+  .hud-tr { top: 12px; right: 16px; text-align: right; }
+  .hud-bl { bottom: 12px; left: 16px; }
+  .hud-br { bottom: 12px; right: 16px; text-align: right; }
+
+  .hud-blink {
+    animation: hudBlink 2s step-end infinite;
+  }
+  @keyframes hudBlink { 0%,100%{opacity:0.3} 50%{opacity:0.7} }
+
+  /* Scanline overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.03) 2px,
+      rgba(0,0,0,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Responsive */
+  @media (max-width: 520px) {
+    .login-panel { padding: 28px 20px; }
+    .logo-title { font-size: 1.2rem; }
+    .demo-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND CANVAS -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- SWEEP LIGHTS -->
+<div class="sweep-light"></div>
+<div class="sweep-light"></div>
+<div class="sweep-light"></div>
+<div class="sweep-light"></div>
+
+<!-- ARENA FLOOR -->
+<div class="arena-floor"></div>
+
+<!-- HUD CORNERS -->
+<div class="hud-corner hud-tl">TROJANS_SYS v4.1<br><span class="hud-blink">● LIVE</span></div>
+<div class="hud-corner hud-tr">ARENA_GATE_01<br>AUTH_REQUIRED</div>
+<div class="hud-corner hud-bl">ENCRYPTION: AES-256<br>PROTOCOL: ACTIVE</div>
+<div class="hud-corner hud-br">PLAYERS ONLINE: <span id="onlineCount">847</span><br><span class="hud-blink">ARENA OPEN</span></div>
+
+<!-- ═══════════════════ INTRO SEQUENCE ═══════════════════ -->
+<div id="intro">
+  <span class="intro-text glitch" style="animation-delay:0.2s">⚔️ Entering Trojans Arena…</span>
+  <div class="intro-bar"></div>
+  <span class="intro-sub" style="animation-delay:1s">INITIALIZING COMBAT PROTOCOLS</span>
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div id="app">
+  <div class="login-panel">
+
+    <!-- LOGO -->
+    <div class="logo-section">
+      <span class="logo-icon">⚔️</span>
+      <div class="logo-title">Trojans<br>Quiz Arena</div>
+      <div class="logo-sub">Prove your speed. Prove your mind.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ROLE SELECTION -->
+    <div class="role-label">Select Your Role</div>
+    <div class="role-cards">
+      <div class="role-card student active" data-role="student" onclick="selectRole('student')">
+        <div class="active-dot"></div>
+        <span class="role-emoji">👨‍🎓</span>
+        <div class="role-name">Student</div>
+        <div class="role-desc">Enter as Player</div>
+      </div>
+      <div class="role-card admin" data-role="admin" onclick="selectRole('admin')">
+        <div class="active-dot"></div>
+        <span class="role-emoji">👨‍🏫</span>
+        <div class="role-name">Quiz Master</div>
+        <div class="role-desc">Command Mode</div>
+      </div>
+    </div>
+
+    <!-- FORM -->
+    <div class="field-group">
+      <label class="field-label" for="username">⬡ Identifier</label>
+      <div class="field-wrap">
+        <span class="field-icon">◈</span>
+        <input class="field-input" type="text" id="username" placeholder="Enter username or email" autocomplete="off">
+        <div class="field-line"></div>
+      </div>
+    </div>
+
+    <div class="field-group">
+      <label class="field-label" for="password">⬡ Access Key</label>
+      <div class="field-wrap">
+        <span class="field-icon">◉</span>
+        <input class="field-input" type="password" id="password" placeholder="Enter your password" autocomplete="off">
+        <div class="field-line"></div>
+      </div>
+    </div>
+
+    <div class="error-msg" id="errorMsg">⚠ INVALID CREDENTIALS — ACCESS DENIED</div>
+
+    <!-- ENTER BUTTON -->
+    <button class="enter-btn" id="enterBtn" onclick="handleLogin()">
+      <span>⚡ Enter the Arena</span>
+    </button>
+
+    <!-- DEMO CREDENTIALS -->
+    <div class="demo-panel">
+      <div class="demo-title">Training Mode Access</div>
+      <div class="demo-grid">
+        <div class="demo-item" onclick="fillDemo('student')">
+          <div class="demo-role">👨‍🎓 Student</div>
+          <div class="demo-cred">user: <span>player1</span><br>pass: <span>1234</span></div>
+          <div class="demo-hint">↑ click to autofill</div>
+        </div>
+        <div class="demo-item" onclick="fillDemo('admin')">
+          <div class="demo-role">👨‍🏫 Quiz Master</div>
+          <div class="demo-cred">user: <span>admin</span><br>pass: <span>admin123</span></div>
+          <div class="demo-hint">↑ click to autofill</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- SUCCESS OVERLAY -->
+<div id="successOverlay">
+  <div class="success-text" id="successText">ACCESS GRANTED</div>
+  <div class="success-sub" id="successSub">TELEPORTING INTO ARENA…</div>
+  <div class="success-bar"><div class="success-bar-fill" id="successBarFill"></div></div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   PARTICLE CANVAS
+═══════════════════════════════════════════ */
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [], sparks = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', () => { resize(); initParticles(); });
+
+function initParticles() {
+  particles = [];
+  const count = Math.floor((W * H) / 14000);
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -Math.random() * 0.4 - 0.1,
+      r: Math.random() * 1.5 + 0.3,
+      life: Math.random(),
+      maxLife: Math.random() * 0.5 + 0.5,
+      color: ['rgba(0,212,255,', 'rgba(255,34,68,', 'rgba(168,85,247,', 'rgba(255,215,0,'][Math.floor(Math.random()*4)]
+    });
+  }
+}
+initParticles();
+
+function spawnSpark(x, y) {
+  for (let i = 0; i < 12; i++) {
+    const angle = (Math.PI * 2 * i) / 12 + Math.random() * 0.5;
+    const speed = Math.random() * 4 + 2;
+    sparks.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: 1,
+      r: Math.random() * 2 + 1,
+      color: Math.random() > 0.5 ? '0,212,255' : '255,215,0'
+    });
+  }
+}
+
+function drawFrame() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Radial vignette
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.7);
+  grad.addColorStop(0, 'rgba(10,5,30,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.7)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Particles
+  for (let p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.003;
+    if (p.life <= 0 || p.y < 0) {
+      p.x = Math.random() * W;
+      p.y = H + 10;
+      p.life = p.maxLife;
+    }
+    const a = Math.min(p.life * 2, 1) * 0.6;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color + a + ')';
+    ctx.fill();
+  }
+
+  // Sparks
+  for (let i = sparks.length - 1; i >= 0; i--) {
+    const s = sparks[i];
+    s.x += s.vx;
+    s.y += s.vy;
+    s.vy += 0.1;
+    s.life -= 0.04;
+    if (s.life <= 0) { sparks.splice(i, 1); continue; }
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r * s.life, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${s.color},${s.life})`;
+    ctx.shadowBlur = 8;
+    ctx.shadowColor = `rgba(${s.color},0.8)`;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  requestAnimationFrame(drawFrame);
+}
+drawFrame();
+
+/* ═══════════════════════════════════════════
+   INTRO SEQUENCE
+═══════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    document.getElementById('intro').classList.add('fade-out');
+    setTimeout(() => {
+      document.getElementById('intro').style.display = 'none';
+    }, 900);
+  }, 2800);
+});
+
+/* ═══════════════════════════════════════════
+   ROLE SELECTION
+═══════════════════════════════════════════ */
+let currentRole = 'student';
+
+function selectRole(role) {
+  currentRole = role;
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.role-card.${role}`).classList.add('active');
+
+  const root = document.documentElement;
+  if (role === 'admin') {
+    root.style.setProperty('--active-color', 'var(--admin-color)');
+    document.body.classList.add('admin-mode');
+    // Glitch effect on switch
+    glitchPanel();
+  } else {
+    root.style.setProperty('--active-color', 'var(--student-color)');
+    document.body.classList.remove('admin-mode');
+    glitchPanel();
+  }
+}
+
+function glitchPanel() {
+  const panel = document.querySelector('.login-panel');
+  panel.style.filter = 'hue-rotate(180deg) brightness(2)';
+  setTimeout(() => panel.style.filter = '', 120);
+}
+
+/* ═══════════════════════════════════════════
+   DEMO AUTOFILL
+═══════════════════════════════════════════ */
+function fillDemo(role) {
+  selectRole(role);
+  const creds = role === 'student'
+    ? { user: 'player1', pass: '1234' }
+    : { user: 'admin',   pass: 'admin123' };
+
+  typeInto(document.getElementById('username'), creds.user);
+  setTimeout(() => typeInto(document.getElementById('password'), creds.pass), 200);
+}
+
+function typeInto(el, text) {
+  el.value = '';
+  let i = 0;
+  const interval = setInterval(() => {
+    el.value += text[i];
+    i++;
+    if (i >= text.length) clearInterval(interval);
+  }, 60);
+}
+
+/* ═══════════════════════════════════════════
+   LOGIN LOGIC
+═══════════════════════════════════════════ */
+const CREDENTIALS = {
+  student: { username: 'player1', password: '1234' },
+  admin:   { username: 'admin',   password: 'admin123' }
+};
+
+function handleLogin() {
+  const btn = document.getElementById('enterBtn');
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+  const errEl = document.getElementById('errorMsg');
+
+  // Ripple
+  createRipple(event, btn);
+
+  // Validate
+  const cred = CREDENTIALS[currentRole];
+  if (u !== cred.username || p !== cred.password) {
+    errEl.textContent = '⚠ INVALID CREDENTIALS — ACCESS DENIED';
+    errEl.classList.remove('visible');
+    void errEl.offsetWidth;
+    errEl.classList.add('visible');
+
+    // Red flash
+    document.querySelector('.login-panel').style.boxShadow = '0 0 60px rgba(255,34,68,0.5)';
+    setTimeout(() => document.querySelector('.login-panel').style.boxShadow = '', 600);
+    return;
+  }
+
+  // Loading state
+  errEl.classList.remove('visible');
+  btn.classList.add('loading');
+
+  // Spark burst
+  const rect = btn.getBoundingClientRect();
+  spawnSpark(rect.left + rect.width/2, rect.top + rect.height/2);
+
+  setTimeout(() => {
+    btn.classList.remove('loading');
+    showSuccess(currentRole);
+  }, 1400);
+}
+
+function createRipple(e, btn) {
+  const ripple = document.createElement('div');
+  ripple.classList.add('ripple');
+  const rect = btn.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.width = ripple.style.height = size + 'px';
+  ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+  ripple.style.top  = (e.clientY - rect.top - size/2) + 'px';
+  btn.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 700);
+}
+
+function showSuccess(role) {
+  const overlay = document.getElementById('successOverlay');
+  const text = document.getElementById('successText');
+  const sub  = document.getElementById('successSub');
+  const fill = document.getElementById('successBarFill');
+
+  text.textContent = 'ACCESS GRANTED';
+  sub.textContent  = role === 'admin'
+    ? 'LOADING QUIZ MASTER COMMAND CENTER…'
+    : 'TELEPORTING INTO ARENA…';
+
+  overlay.classList.add('active');
+
+  // Reset bar animation
+  fill.style.animation = 'none';
+  void fill.offsetWidth;
+  fill.style.animation = 'fillBar 1.8s ease-in-out forwards';
+
+  // Particle burst
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      spawnSpark(W * Math.random(), H * Math.random());
+    }, i * 200);
+  }
+
+  // Redirect to appropriate dashboard
+  setTimeout(() => {
+    const destination = role === 'admin' ? '/qMastDash' : '/stuDash';
+    window.location.href = destination;
+  }, 2200);
+}
+
+/* ═══════════════════════════════════════════
+   LIVE PLAYER COUNT TICKER
+═══════════════════════════════════════════ */
+function tickPlayerCount() {
+  const el = document.getElementById('onlineCount');
+  const current = parseInt(el.textContent);
+  const delta = Math.floor(Math.random() * 5) - 2;
+  const next = Math.max(800, Math.min(999, current + delta));
+  el.textContent = next;
+}
+setInterval(tickPlayerCount, 3000);
+
+/* ═══════════════════════════════════════════
+   KEYBOARD SUPPORT
+═══════════════════════════════════════════ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') handleLogin();
+});
+
+/* ═══════════════════════════════════════════
+   MOUSE SPARK ON CLICK (bg)
+═══════════════════════════════════════════ */
+document.getElementById('app').addEventListener('click', e => {
+  if (e.target === document.getElementById('app')) {
+    spawnSpark(e.clientX, e.clientY);
+  }
+});
+</script>
+</body>
+</html>
