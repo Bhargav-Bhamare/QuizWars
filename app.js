@@ -20,7 +20,7 @@ const CREDENTIALS = {
 };
 
 app.get("/", (req,res)=>{
-    res.render("login.ejs");
+    res.render("landing.ejs");
 });
 
 app.get("/stuDash", (req,res)=>{
