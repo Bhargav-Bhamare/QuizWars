@@ -17,6 +17,12 @@ app.get("/", (req,res)=>{
     res.send("Homepage");
 });
 
+app.get("/stuDash", (req,res)=>{
+    res.render("studentDash.ejs");
+});
+
+
+
 
 //Server Check
 app.listen(8080, () => {
