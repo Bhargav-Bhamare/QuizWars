@@ -21,6 +21,9 @@ app.get("/stuDash", (req,res)=>{
     res.render("studentDash.ejs");
 });
 
+app.get("/qMastDash", (req,res)=>{
+    res.render("qMasterDash.ejs");
+});
 
 
 
