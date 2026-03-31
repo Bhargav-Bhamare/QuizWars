@@ -897,6 +897,7 @@ textarea.neon-input { resize: none; height: 70px; font-size: 0.9rem; }
         <button class="arena-btn btn-start" id="btn-start" onclick="handleStart(event)">▶ LAUNCH ARENA</button>
         <button class="arena-btn btn-pause" id="btn-pause" onclick="handlePause(event)" disabled>⏸ PAUSE BATTLE</button>
         <button class="arena-btn btn-end" id="btn-end" onclick="handleEnd(event)" disabled>■ END GAME</button>
+        <button class="arena-btn" id="btn-new-quiz" onclick="createNewQuiz(event)" style="background:transparent;border:1px solid var(--gold);color:var(--gold);box-shadow:0 0 15px var(--gold-glow);">✚ NEW QUIZ</button>
       </div>
     </div>
 
@@ -1117,12 +1118,12 @@ let nextId = 11;
 
 const players = [
   { name:"CADET_BHARGAV", emoji:"🦁", score:0, status:"pending" },
-  { name:"BLITZ_NEHA",  emoji:"🐯", score:0, status:"pending" },
-  { name:"CYBER_ROHAN", emoji:"🦊", score:0, status:"pending" },
-  { name:"NOVA_PRIYA",  emoji:"🐺", score:0, status:"pending" },
-  { name:"STORM_KARAN", emoji:"🦅", score:0, status:"pending" },
-  { name:"ECHO_DIVYA",  emoji:"🐉", score:0, status:"pending" },
-  { name:"VIPER_AMIT",  emoji:"🦁", score:0, status:"pending" },
+  { name:"BLITZ_MISTY",  emoji:"🐯", score:0, status:"pending" },
+  { name:"CYBER_BHUVI", emoji:"🦊", score:0, status:"pending" },
+  { name:"NOVA_PALAK",  emoji:"🐺", score:0, status:"pending" },
+  { name:"STORM_KUSHAGRA", emoji:"🦅", score:0, status:"pending" },
+  { name:"ECHO_PANKHURI",  emoji:"🐉", score:0, status:"pending" },
+  { name:"VIPER_SHAIVY",  emoji:"🦁", score:0, status:"pending" },
 ];
 
 let G = { running:false, paused:false, qIdx:0, timer:0, timerInt:null, editId:null, selectedAns:null, diff:'easy' };
@@ -1392,6 +1393,28 @@ function handleReset(e) {
   notify('⟳ Arena reset!','i');
   logEvent('Arena RESET by QuizMaster','warn');
   spawnSpark(innerWidth/2,innerHeight/2,'#ff2244',15);
+  updateStats();
+}
+
+function createNewQuiz(e) {
+  ripple(document.getElementById('btn-new-quiz'), e);
+  G.running=false; G.paused=false; G.qIdx=0; G.editId=null; G.selectedAns=null;
+  clearInterval(G.timerInt); clearInterval(window._botTick);
+  questions = [];
+  nextId = 1;
+  players.forEach(p=>{p.score=0;p.status='pending';});
+  setArenaState('standby');
+  document.getElementById('btn-start').disabled=false;
+  document.getElementById('btn-start').textContent='▶ LAUNCH ARENA';
+  document.getElementById('btn-pause').disabled=true;
+  document.getElementById('btn-end').disabled=true;
+  clearForm();
+  renderQBank();
+  renderLeaderboard();
+  renderPlayers();
+  notify('✚ New quiz created with 0 questions!','s');
+  logEvent('📋 NEW QUIZ created by QuizMaster','system');
+  spawnSpark(innerWidth/2,innerHeight/2,'#ffd700',20);
   updateStats();
 }
 
